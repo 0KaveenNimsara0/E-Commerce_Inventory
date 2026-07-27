@@ -1,0 +1,12 @@
+{
+  "name": "ecommerce-enterprise-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/1-customer-storefront",
+    "build": "npm run build --workspace=apps/1-customer-storefront"
+  }
+}

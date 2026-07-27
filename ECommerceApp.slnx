@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/apps/" />
+  <Folder Name="/apps/2-ecommerce-api/">
+    <Project Path="apps/2-ecommerce-api/ECommerce.Api.csproj" />
+  </Folder>
+  <Folder Name="/packages/">
+    <Project Path="packages/ECommerce.Application/ECommerce.Application.csproj" />
+    <Project Path="packages/ECommerce.Domain/ECommerce.Domain.csproj" />
+    <Project Path="packages/ECommerce.Infrastructure/ECommerce.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ECommerce.Application.Tests/ECommerce.Application.Tests.csproj" />
+    <Project Path="tests/ECommerce.Domain.Tests/ECommerce.Domain.Tests.csproj" />
+    <Project Path="tests/ECommerce.Infrastructure.Tests/ECommerce.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>
