@@ -1,10 +1,11 @@
+using ECommerce.Application.Common.Interfaces;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Infrastructure.Persistence;
 
-public class ECommerceDbContext : DbContext
+public class ECommerceDbContext : DbContext, IApplicationDbContext
 {
     public ECommerceDbContext(DbContextOptions<ECommerceDbContext> options) : base(options)
     {

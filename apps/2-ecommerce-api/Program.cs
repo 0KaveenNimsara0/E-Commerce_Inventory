@@ -1,5 +1,7 @@
-using ECommerce.Domain.Entities;
-using ECommerce.Domain.ValueObjects;
+using ECommerce.Application;
+using ECommerce.Application.Common.Interfaces;
+using ECommerce.Application.DTOs;
+using ECommerce.Application.Services;
 using ECommerce.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +17,6 @@ if (builder.Environment.IsDevelopment())
 builder.Configuration.AddEnvironmentVariables();
 
 // Configure PostgreSQL DbContext.
-// Prefer an environment variable or user secret, and avoid hardcoded credentials.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
 
@@ -26,6 +27,10 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<ECommerceDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+// Register Application layer interfaces and services
+builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ECommerceDbContext>());
+builder.Services.AddApplicationServices();
 
 // Enable CORS for frontend Vite storefront
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -45,7 +50,7 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Ensure database schema is created on startup (no seed data — all data comes from API calls)
+// Ensure database schema is created on startup
 try
 {
     using var scope = app.Services.CreateScope();
@@ -72,200 +77,64 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
-// --- API ENDPOINTS FOR FRONTEND ---
+// --- API ENDPOINTS USING APPLICATION LAYER SERVICES ---
 
-// Get Inventory / Products
-app.MapGet("/api/inventory", async (ECommerceDbContext db) =>
+// Products Endpoints
+app.MapGet("/api/inventory", async (IProductService productService) =>
 {
-    var products = await db.Products.AsNoTracking().ToListAsync();
-    var mapped = products.Select(p => new
-    {
-        id = p.Id,
-        name = p.Name,
-        description = p.Description,
-        price = p.Price.Amount,
-        currency = p.Price.Currency,
-        stockQuantity = p.StockQuantity,
-        isActive = p.IsActive
-    });
-    return Results.Ok(mapped);
+    var products = await productService.GetAllProductsAsync();
+    return Results.Ok(products);
 });
 
-// Get Inventory & Revenue Stats
-app.MapGet("/api/stats", async (ECommerceDbContext db) =>
+app.MapPost("/api/inventory", async (CreateProductDto dto, IProductService productService) =>
 {
-    var totalProducts = await db.Products.CountAsync();
-    var pendingOrders = await db.Orders.CountAsync(o => o.Status == ECommerce.Domain.Enums.OrderStatus.Pending);
-    var totalCustomers = await db.Customers.CountAsync();
-    
-    var orders = await db.Orders.Include(o => o.Items).ToListAsync();
-    var totalRevenue = orders.Sum(o => o.TotalAmount.Amount);
-
-    return Results.Ok(new
-    {
-        totalProducts,
-        pendingOrders,
-        totalCustomers,
-        totalRevenue
-    });
+    var product = await productService.CreateProductAsync(dto);
+    return Results.Created($"/api/inventory/{product.Id}", product);
 });
 
-// Add New Product
-app.MapPost("/api/inventory", async (ProductDto dto, ECommerceDbContext db) =>
+app.MapPut("/api/inventory/{id:guid}", async (Guid id, UpdateProductDto dto, IProductService productService) =>
 {
-    var product = new Product(dto.Name, dto.Description, new Money(dto.Price), dto.StockQuantity);
-    db.Products.Add(product);
-    await db.SaveChangesAsync();
-    return Results.Created($"/api/inventory/{product.Id}", new
-    {
-        id = product.Id,
-        name = product.Name,
-        description = product.Description,
-        price = product.Price.Amount,
-        currency = product.Price.Currency,
-        stockQuantity = product.StockQuantity,
-        isActive = product.IsActive
-    });
+    var product = await productService.UpdateProductAsync(id, dto);
+    return product != null ? Results.Ok(product) : Results.NotFound(new { message = $"Product with ID {id} not found." });
 });
 
-// Update Product
-app.MapPut("/api/inventory/{id:guid}", async (Guid id, UpdateProductDto dto, ECommerceDbContext db) =>
+app.MapDelete("/api/inventory/{id:guid}", async (Guid id, IProductService productService) =>
 {
-    var product = await db.Products.FindAsync(id);
-    if (product == null)
-    {
-        return Results.NotFound(new { message = $"Product with ID {id} not found." });
-    }
-
-    product.UpdateDetails(dto.Name, dto.Description, new Money(dto.Price));
-
-    if (dto.StockQuantity > product.StockQuantity)
-    {
-        product.AddStock(dto.StockQuantity - product.StockQuantity);
-    }
-    else if (dto.StockQuantity < product.StockQuantity)
-    {
-        product.RemoveStock(product.StockQuantity - dto.StockQuantity);
-    }
-
-    if (dto.IsActive && !product.IsActive)
-    {
-        product.Activate();
-    }
-    else if (!dto.IsActive && product.IsActive)
-    {
-        product.Deactivate();
-    }
-
-    await db.SaveChangesAsync();
-
-    return Results.Ok(new
-    {
-        id = product.Id,
-        name = product.Name,
-        description = product.Description,
-        price = product.Price.Amount,
-        currency = product.Price.Currency,
-        stockQuantity = product.StockQuantity,
-        isActive = product.IsActive
-    });
+    var deleted = await productService.DeleteProductAsync(id);
+    return deleted ? Results.NoContent() : Results.NotFound(new { message = $"Product with ID {id} not found." });
 });
 
-// Delete Product
-app.MapDelete("/api/inventory/{id:guid}", async (Guid id, ECommerceDbContext db) =>
+// Customers Endpoints
+app.MapGet("/api/customers", async (ICustomerService customerService) =>
 {
-    var product = await db.Products.FindAsync(id);
-    if (product == null)
-    {
-        return Results.NotFound(new { message = $"Product with ID {id} not found." });
-    }
-
-    db.Products.Remove(product);
-    await db.SaveChangesAsync();
-    return Results.NoContent();
+    var customers = await customerService.GetAllCustomersAsync();
+    return Results.Ok(customers);
 });
 
-// Get Orders
-app.MapGet("/api/orders", async (ECommerceDbContext db) =>
+app.MapPost("/api/customers", async (CreateCustomerDto dto, ICustomerService customerService) =>
 {
-    var orders = await db.Orders.AsNoTracking().ToListAsync();
-    var mapped = orders.Select(o => new
-    {
-        id = o.Id,
-        customerId = o.CustomerId,
-        status = o.Status.ToString(),
-        totalAmount = o.TotalAmount.Amount,
-        currency = o.TotalAmount.Currency,
-        itemsCount = o.Items.Count,
-        createdAt = o.CreatedAt
-    });
-    return Results.Ok(mapped);
+    var customer = await customerService.CreateCustomerAsync(dto);
+    return Results.Created($"/api/customers/{customer.Id}", customer);
 });
 
-// Get Customers
-app.MapGet("/api/customers", async (ECommerceDbContext db) =>
+app.MapPut("/api/customers/{id:guid}", async (Guid id, UpdateCustomerDto dto, ICustomerService customerService) =>
 {
-    var customers = await db.Customers.AsNoTracking().ToListAsync();
-    var mapped = customers.Select(c => new
-    {
-        id = c.Id,
-        firstName = c.FirstName,
-        lastName = c.LastName,
-        fullName = c.FullName,
-        email = c.Email,
-        isActive = c.IsActive
-    });
-    return Results.Ok(mapped);
+    var customer = await customerService.UpdateCustomerAsync(id, dto);
+    return customer != null ? Results.Ok(customer) : Results.NotFound(new { message = $"Customer with ID {id} not found." });
 });
 
-// Add Customer
-app.MapPost("/api/customers", async (CustomerDto dto, ECommerceDbContext db) =>
+// Orders Endpoints
+app.MapGet("/api/orders", async (IOrderService orderService) =>
 {
-    var customer = new Customer(dto.FirstName, dto.LastName, dto.Email, dto.IsActive);
-    db.Customers.Add(customer);
-    await db.SaveChangesAsync();
-    return Results.Created($"/api/customers/{customer.Id}", new
-    {
-        id = customer.Id,
-        firstName = customer.FirstName,
-        lastName = customer.LastName,
-        fullName = customer.FullName,
-        email = customer.Email,
-        isActive = customer.IsActive
-    });
+    var orders = await orderService.GetAllOrdersAsync();
+    return Results.Ok(orders);
 });
 
-// Update Customer
-app.MapPut("/api/customers/{id:guid}", async (Guid id, CustomerDto dto, ECommerceDbContext db) =>
+// System Stats Endpoint
+app.MapGet("/api/stats", async (IStatsService statsService) =>
 {
-    var customer = await db.Customers.FindAsync(id);
-    if (customer == null)
-    {
-        return Results.NotFound(new { message = $"Customer with ID {id} not found." });
-    }
-
-    customer.UpdateDetails(dto.FirstName, dto.LastName, dto.Email);
-
-    if (dto.IsActive && !customer.IsActive)
-    {
-        customer.Activate();
-    }
-    else if (!dto.IsActive && customer.IsActive)
-    {
-        customer.Deactivate();
-    }
-
-    await db.SaveChangesAsync();
-
-    return Results.Ok(new
-    {
-        id = customer.Id,
-        firstName = customer.FirstName,
-        lastName = customer.LastName,
-        fullName = customer.FullName,
-        email = customer.Email,
-        isActive = customer.IsActive
-    });
+    var stats = await statsService.GetSystemStatsAsync();
+    return Results.Ok(stats);
 });
 
 // Config Check Endpoint
@@ -282,8 +151,3 @@ app.MapGet("/config-check", (IConfiguration config) =>
 });
 
 app.Run();
-
-record ProductDto(string Name, string Description, decimal Price, int StockQuantity);
-record UpdateProductDto(string Name, string Description, decimal Price, int StockQuantity, bool IsActive);
-record CustomerDto(string FirstName, string LastName, string Email, bool IsActive = true);
-
