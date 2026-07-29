@@ -2,6 +2,7 @@ using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.DTOs;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.ValueObjects;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Application.Services;
@@ -18,10 +19,17 @@ public interface IProductService
 public class ProductService : IProductService
 {
     private readonly IApplicationDbContext _db;
+    private readonly IValidator<CreateProductDto> _createValidator;
+    private readonly IValidator<UpdateProductDto> _updateValidator;
 
-    public ProductService(IApplicationDbContext db)
+    public ProductService(
+        IApplicationDbContext db,
+        IValidator<CreateProductDto> createValidator,
+        IValidator<UpdateProductDto> updateValidator)
     {
         _db = db;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
     }
 
     public async Task<IEnumerable<ProductDto>> GetAllProductsAsync(CancellationToken cancellationToken = default)
@@ -38,6 +46,8 @@ public class ProductService : IProductService
 
     public async Task<ProductDto> CreateProductAsync(CreateProductDto dto, CancellationToken cancellationToken = default)
     {
+        await _createValidator.ValidateAndThrowAsync(dto, cancellationToken);
+
         var product = new Product(dto.Name, dto.Description, new Money(dto.Price), dto.StockQuantity);
         _db.Products.Add(product);
         await _db.SaveChangesAsync(cancellationToken);
@@ -46,6 +56,8 @@ public class ProductService : IProductService
 
     public async Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto dto, CancellationToken cancellationToken = default)
     {
+        await _updateValidator.ValidateAndThrowAsync(dto, cancellationToken);
+
         var product = await _db.Products.FindAsync(new object[] { id }, cancellationToken);
         if (product == null) return null;
 

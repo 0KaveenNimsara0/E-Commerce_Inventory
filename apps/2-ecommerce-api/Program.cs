@@ -46,9 +46,58 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Global Exception & RFC 7807 ProblemDetails Middleware
+app.UseExceptionHandler(exceptionHandlerApp =>
+{
+    exceptionHandlerApp.Run(async context =>
+    {
+        var exceptionHandlerFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        if (exceptionHandlerFeature?.Error is null) return;
+
+        var exception = exceptionHandlerFeature.Error;
+
+        context.Response.ContentType = "application/problem+json";
+
+        if (exception is FluentValidation.ValidationException valEx)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            var errors = valEx.Errors.GroupBy(e => e.PropertyName)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
+            await context.Response.WriteAsJsonAsync(new Microsoft.AspNetCore.Mvc.ValidationProblemDetails(errors)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation Failed",
+                Detail = "One or more validation errors occurred."
+            });
+        }
+        else if (exception is ECommerce.Domain.Exceptions.DomainException domainEx)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new Microsoft.AspNetCore.Mvc.ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Domain Rule Violation",
+                Detail = domainEx.Message
+            });
+        }
+        else
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new Microsoft.AspNetCore.Mvc.ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Title = "Internal Server Error",
+                Detail = exception.Message
+            });
+        }
+    });
+});
 
 // Ensure database schema is created on startup
 try

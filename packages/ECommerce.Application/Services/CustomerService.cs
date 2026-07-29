@@ -1,6 +1,7 @@
 using ECommerce.Application.Common.Interfaces;
 using ECommerce.Application.DTOs;
 using ECommerce.Domain.Entities;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECommerce.Application.Services;
@@ -16,10 +17,17 @@ public interface ICustomerService
 public class CustomerService : ICustomerService
 {
     private readonly IApplicationDbContext _db;
+    private readonly IValidator<CreateCustomerDto> _createValidator;
+    private readonly IValidator<UpdateCustomerDto> _updateValidator;
 
-    public CustomerService(IApplicationDbContext db)
+    public CustomerService(
+        IApplicationDbContext db,
+        IValidator<CreateCustomerDto> createValidator,
+        IValidator<UpdateCustomerDto> updateValidator)
     {
         _db = db;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
     }
 
     public async Task<IEnumerable<CustomerDto>> GetAllCustomersAsync(CancellationToken cancellationToken = default)
@@ -36,6 +44,8 @@ public class CustomerService : ICustomerService
 
     public async Task<CustomerDto> CreateCustomerAsync(CreateCustomerDto dto, CancellationToken cancellationToken = default)
     {
+        await _createValidator.ValidateAndThrowAsync(dto, cancellationToken);
+
         var customer = new Customer(dto.FirstName, dto.LastName, dto.Email, dto.IsActive);
         _db.Customers.Add(customer);
         await _db.SaveChangesAsync(cancellationToken);
@@ -44,6 +54,8 @@ public class CustomerService : ICustomerService
 
     public async Task<CustomerDto?> UpdateCustomerAsync(Guid id, UpdateCustomerDto dto, CancellationToken cancellationToken = default)
     {
+        await _updateValidator.ValidateAndThrowAsync(dto, cancellationToken);
+
         var customer = await _db.Customers.FindAsync(new object[] { id }, cancellationToken);
         if (customer == null) return null;
 
