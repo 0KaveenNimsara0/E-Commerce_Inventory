@@ -1,6 +1,17 @@
 @ECommerce.Api_HostAddress = http://localhost:5048
 
-GET {{ECommerce.Api_HostAddress}}/weatherforecast/
+### Get all products
+GET {{ECommerce.Api_HostAddress}}/api/inventory
 Accept: application/json
 
-###
+### Get all customers
+GET {{ECommerce.Api_HostAddress}}/api/customers
+Accept: application/json
+
+### Get all orders
+GET {{ECommerce.Api_HostAddress}}/api/orders
+Accept: application/json
+
+### Get system stats
+GET {{ECommerce.Api_HostAddress}}/api/stats
+Accept: application/json
