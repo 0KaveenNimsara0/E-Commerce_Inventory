@@ -28,7 +28,11 @@ import { OrderList } from './components/orders/OrderList';
 import { CustomerList } from './components/customers/CustomerList';
 import { CustomerFormModal } from './components/customers/CustomerFormModal';
 
+import { useToast } from './context/ToastContext';
+
 export default function App() {
+  const { showSuccess, showError, showInfo } = useToast();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -65,6 +69,7 @@ export default function App() {
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'An unexpected error occurred.';
       setApiError(message);
+      showError(message);
       console.error('Failed to load API data', err);
     } finally {
       setLoading(false);
@@ -90,30 +95,34 @@ export default function App() {
     try {
       if (editId) {
         await updateProduct(editId, formData);
+        showSuccess(`Product "${formData.name}" updated successfully!`);
       } else {
         await createProduct(formData);
+        showSuccess(`Product "${formData.name}" added successfully!`);
       }
       loadData();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to save product.';
-      alert(message);
+      showError(message);
       throw err;
     }
   };
 
   const handleToggleProductStatus = async (product: Product) => {
     try {
+      const newStatus = !product.isActive;
       await updateProduct(product.id, {
         name: product.name,
         description: product.description || '',
         price: product.price.toString(),
         stockQuantity: product.stockQuantity.toString(),
-        isActive: !product.isActive,
+        isActive: newStatus,
       });
+      showSuccess(`Product "${product.name}" status updated to ${newStatus ? 'Active' : 'Inactive'}.`);
       loadData();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to toggle product status.';
-      alert(message);
+      showError(message);
     }
   };
 
@@ -121,10 +130,11 @@ export default function App() {
     if (!confirm('Are you sure you want to delete this product?')) return;
     try {
       await deleteProduct(id);
+      showInfo('Product deleted successfully.');
       loadData();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to delete product.';
-      alert(message);
+      showError(message);
     }
   };
 
@@ -143,29 +153,33 @@ export default function App() {
     try {
       if (editId) {
         await updateCustomer(editId, formData);
+        showSuccess(`Customer "${formData.firstName} ${formData.lastName}" updated successfully!`);
       } else {
         await createCustomer(formData);
+        showSuccess(`Customer "${formData.firstName} ${formData.lastName}" added successfully!`);
       }
       loadData();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to save customer.';
-      alert(message);
+      showError(message);
       throw err;
     }
   };
 
   const handleToggleCustomerStatus = async (customer: Customer) => {
     try {
+      const newStatus = !customer.isActive;
       await updateCustomer(customer.id, {
         firstName: customer.firstName,
         lastName: customer.lastName,
         email: customer.email,
-        isActive: !customer.isActive,
+        isActive: newStatus,
       });
+      showSuccess(`Customer "${customer.fullName}" status updated to ${newStatus ? 'Active' : 'Inactive'}.`);
       loadData();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to toggle customer status.';
-      alert(message);
+      showError(message);
     }
   };
 
