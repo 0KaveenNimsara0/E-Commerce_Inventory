@@ -18,6 +18,26 @@ export interface Order {
   createdAt: string;
 }
 
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  unitPrice: number;
+  currency: string;
+  quantity: number;
+  subTotal: number;
+}
+
+export interface OrderDetail {
+  id: string;
+  customerId: string;
+  customerName: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  items: OrderItem[];
+  createdAt: string;
+}
+
 export interface Customer {
   id: string;
   firstName: string;
@@ -47,6 +67,16 @@ export interface CustomerFormData {
   lastName: string;
   email: string;
   isActive: boolean;
+}
+
+export interface OrderItemFormData {
+  productId: string;
+  quantity: string;
+}
+
+export interface OrderFormData {
+  customerId: string;
+  items: OrderItemFormData[];
 }
 
 export type TabType = 'products' | 'orders' | 'customers';

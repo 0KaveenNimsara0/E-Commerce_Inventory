@@ -5,9 +5,10 @@ interface HeaderProps {
   onRefresh: () => void;
   onAddProduct: () => void;
   onAddCustomer: () => void;
+  onAddOrder: () => void;
 }
 
-export function Header({ loading, onRefresh, onAddProduct, onAddCustomer }: HeaderProps) {
+export function Header({ loading, onRefresh, onAddProduct, onAddCustomer, onAddOrder }: HeaderProps) {
   const location = useLocation();
   const path = location.pathname;
 
@@ -63,6 +64,15 @@ export function Header({ loading, onRefresh, onAddProduct, onAddCustomer }: Head
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors shadow-md shadow-indigo-600/30 flex items-center gap-2 cursor-pointer"
           >
             + Add Customer
+          </button>
+        )}
+
+        {activeTab === 'orders' && (
+          <button
+            onClick={onAddOrder}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors shadow-md shadow-indigo-600/30 flex items-center gap-2 cursor-pointer"
+          >
+            + Create Order
           </button>
         )}
       </div>

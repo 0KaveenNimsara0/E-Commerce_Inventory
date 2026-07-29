@@ -1,4 +1,4 @@
-import type { Product, Order, Customer, SystemStats, ProductFormData, CustomerFormData } from '../types';
+import type { Product, Order, Customer, SystemStats, ProductFormData, CustomerFormData, OrderFormData, OrderDetail } from '../types';
 
 export class ApiError extends Error {
   constructor(message: string) {
@@ -74,6 +74,38 @@ export async function deleteProduct(id: string): Promise<void> {
 
 export async function fetchOrders(): Promise<Order[]> {
   return apiFetch<Order[]>('/orders');
+}
+
+export async function createOrder(orderData: OrderFormData): Promise<OrderDetail> {
+  return apiFetch<OrderDetail>('/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      customerId: orderData.customerId,
+      items: orderData.items.map(item => ({
+        productId: item.productId,
+        quantity: parseInt(item.quantity, 10) || 0,
+      })),
+    }),
+  });
+}
+
+export async function fetchOrderDetail(id: string): Promise<OrderDetail> {
+  return apiFetch<OrderDetail>(`/orders/${id}`);
+}
+
+export async function updateOrderStatus(id: string, status: string): Promise<OrderDetail> {
+  return apiFetch<OrderDetail>(`/orders/${id}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function cancelOrder(id: string): Promise<void> {
+  await apiFetch<void>(`/orders/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function fetchCustomers(): Promise<Customer[]> {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-import type { Product, Order, Customer, SystemStats, ProductFormData, CustomerFormData } from './types';
+import type { Product, Order, Customer, SystemStats, ProductFormData, CustomerFormData, OrderFormData, OrderDetail } from './types';
 import {
   fetchProducts,
   fetchOrders,
@@ -12,6 +12,10 @@ import {
   deleteProduct,
   createCustomer,
   updateCustomer,
+  createOrder,
+  fetchOrderDetail,
+  updateOrderStatus,
+  cancelOrder,
   ApiError,
 } from './services/api';
 
@@ -27,6 +31,8 @@ import { OrderList } from './components/orders/OrderList';
 
 import { CustomerList } from './components/customers/CustomerList';
 import { CustomerFormModal } from './components/customers/CustomerFormModal';
+import { OrderFormModal } from './components/orders/OrderFormModal';
+import { OrderDetailModal } from './components/orders/OrderDetailModal';
 
 import { useToast } from './context/ToastContext';
 
@@ -51,6 +57,10 @@ export default function App() {
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState<boolean>(false);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
+
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState<boolean>(false);
+  const [isOrderDetailOpen, setIsOrderDetailOpen] = useState<boolean>(false);
+  const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -183,6 +193,62 @@ export default function App() {
     }
   };
 
+  // Order Handlers
+  const handleOpenAddOrder = () => setIsOrderModalOpen(true);
+
+  const handleSaveOrder = async (formData: OrderFormData) => {
+    try {
+      await createOrder(formData);
+      showSuccess('Order created successfully!');
+      loadData();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to create order.';
+      showError(message);
+      throw err;
+    }
+  };
+
+  const handleViewOrderDetail = async (id: string) => {
+    try {
+      const detail = await fetchOrderDetail(id);
+      setOrderDetail(detail);
+      setIsOrderDetailOpen(true);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to load order details.';
+      showError(message);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (id: string, status: string) => {
+    try {
+      await updateOrderStatus(id, status);
+      showSuccess(`Order status updated to ${status}.`);
+      loadData();
+      if (isOrderDetailOpen && orderDetail?.id === id) {
+        const detail = await fetchOrderDetail(id);
+        setOrderDetail(detail);
+      }
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to update order status.';
+      showError(message);
+    }
+  };
+
+  const handleCancelOrder = async (id: string) => {
+    try {
+      await cancelOrder(id);
+      showInfo('Order has been cancelled.');
+      loadData();
+      if (isOrderDetailOpen && orderDetail?.id === id) {
+        setIsOrderDetailOpen(false);
+        setOrderDetail(null);
+      }
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Failed to cancel order.';
+      showError(message);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-slate-900 font-sans text-slate-100 overflow-hidden">
       {/* Sidebar Navigation */}
@@ -196,6 +262,7 @@ export default function App() {
           onRefresh={loadData}
           onAddProduct={handleOpenAddProduct}
           onAddCustomer={handleOpenAddCustomer}
+          onAddOrder={handleOpenAddOrder}
         />
 
         {/* Dynamic Workspace Container */}
@@ -233,7 +300,18 @@ export default function App() {
                         />
                       }
                     />
-                    <Route path="/orders" element={<OrderList orders={orders} />} />
+                    <Route 
+                      path="/orders" 
+                      element={
+                        <OrderList 
+                          orders={orders} 
+                          onCreateOrder={handleOpenAddOrder}
+                          onViewDetail={handleViewOrderDetail}
+                          onUpdateStatus={handleUpdateOrderStatus}
+                          onCancelOrder={handleCancelOrder}
+                        />
+                      } 
+                    />
                     <Route
                       path="/customers"
                       element={
@@ -274,6 +352,22 @@ export default function App() {
           setCustomerToEdit(null);
         }}
         onSubmit={handleSaveCustomer}
+      />
+
+      <OrderFormModal
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        onSubmit={handleSaveOrder}
+        customers={customers}
+        products={products}
+      />
+
+      <OrderDetailModal
+        isOpen={isOrderDetailOpen}
+        onClose={() => { setIsOrderDetailOpen(false); setOrderDetail(null); }}
+        order={orderDetail}
+        onUpdateStatus={handleUpdateOrderStatus}
+        onCancelOrder={handleCancelOrder}
       />
     </div>
   );
