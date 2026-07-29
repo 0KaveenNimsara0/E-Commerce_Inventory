@@ -1,15 +1,21 @@
-import type { TabType } from '../../types';
+import { useLocation } from 'react-router-dom';
 
 interface HeaderProps {
-  activeTab: TabType;
   loading: boolean;
   onRefresh: () => void;
   onAddProduct: () => void;
   onAddCustomer: () => void;
 }
 
-export function Header({ activeTab, loading, onRefresh, onAddProduct, onAddCustomer }: HeaderProps) {
-  const titles: Record<TabType, { title: string; subtitle: string }> = {
+export function Header({ loading, onRefresh, onAddProduct, onAddCustomer }: HeaderProps) {
+  const location = useLocation();
+  const path = location.pathname;
+
+  let activeTab: 'products' | 'orders' | 'customers' = 'products';
+  if (path.includes('orders')) activeTab = 'orders';
+  if (path.includes('customers')) activeTab = 'customers';
+
+  const titles = {
     products: {
       title: 'Products & Inventory',
       subtitle: 'Manage products, stock levels, and pricing',

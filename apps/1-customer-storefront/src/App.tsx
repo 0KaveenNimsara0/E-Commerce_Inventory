@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
-import type { Product, Order, Customer, SystemStats, TabType, ProductFormData, CustomerFormData } from './types';
+import type { Product, Order, Customer, SystemStats, ProductFormData, CustomerFormData } from './types';
 import {
   fetchProducts,
   fetchOrders,
@@ -28,7 +29,6 @@ import { CustomerList } from './components/customers/CustomerList';
 import { CustomerFormModal } from './components/customers/CustomerFormModal';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -172,13 +172,12 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-900 font-sans text-slate-100 overflow-hidden">
       {/* Sidebar Navigation */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} apiError={apiError} />
+      <Sidebar apiError={apiError} />
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-900">
         {/* Top Header */}
         <Header
-          activeTab={activeTab}
           loading={loading}
           onRefresh={loadData}
           onAddProduct={handleOpenAddProduct}
@@ -205,28 +204,35 @@ export default function App() {
                 {/* Stats Overview Bar */}
                 <StatsOverview stats={stats} />
 
-                {/* Main Views */}
+                {/* Main Views via Router */}
                 <div className="bg-slate-950 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
-                  {activeTab === 'products' && (
-                    <ProductList
-                      products={products}
-                      onEditProduct={handleOpenEditProduct}
-                      onToggleStatus={handleToggleProductStatus}
-                      onDeleteProduct={handleDeleteProduct}
-                      onAddFirstProduct={handleOpenAddProduct}
+                  <Routes>
+                    <Route
+                      path="/products"
+                      element={
+                        <ProductList
+                          products={products}
+                          onEditProduct={handleOpenEditProduct}
+                          onToggleStatus={handleToggleProductStatus}
+                          onDeleteProduct={handleDeleteProduct}
+                          onAddFirstProduct={handleOpenAddProduct}
+                        />
+                      }
                     />
-                  )}
-
-                  {activeTab === 'orders' && <OrderList orders={orders} />}
-
-                  {activeTab === 'customers' && (
-                    <CustomerList
-                      customers={customers}
-                      onEditCustomer={handleOpenEditCustomer}
-                      onToggleStatus={handleToggleCustomerStatus}
-                      onAddFirstCustomer={handleOpenAddCustomer}
+                    <Route path="/orders" element={<OrderList orders={orders} />} />
+                    <Route
+                      path="/customers"
+                      element={
+                        <CustomerList
+                          customers={customers}
+                          onEditCustomer={handleOpenEditCustomer}
+                          onToggleStatus={handleToggleCustomerStatus}
+                          onAddFirstCustomer={handleOpenAddCustomer}
+                        />
+                      }
                     />
-                  )}
+                    <Route path="*" element={<Navigate to="/products" replace />} />
+                  </Routes>
                 </div>
               </>
             )

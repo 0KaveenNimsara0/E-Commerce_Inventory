@@ -1,12 +1,10 @@
-import type { TabType } from '../../types';
+import { NavLink } from 'react-router-dom';
 
 interface SidebarProps {
-  activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
   apiError: string | null;
 }
 
-export function Sidebar({ activeTab, setActiveTab, apiError }: SidebarProps) {
+export function Sidebar({ apiError }: SidebarProps) {
   return (
     <aside className="w-64 bg-slate-950 text-slate-100 flex flex-col shadow-2xl z-10 shrink-0 border-r border-slate-800">
       {/* Brand Header */}
@@ -22,47 +20,53 @@ export function Sidebar({ activeTab, setActiveTab, apiError }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-2">
-        <button
-          onClick={() => setActiveTab('products')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
-            activeTab === 'products'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-          }`}
+        <NavLink
+          to="/products"
+          className={({ isActive }) =>
+            `w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+              isActive
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+            }`
+          }
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
           </svg>
           Products
-        </button>
+        </NavLink>
 
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
-            activeTab === 'orders'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-          }`}
+        <NavLink
+          to="/orders"
+          className={({ isActive }) =>
+            `w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+              isActive
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+            }`
+          }
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
           Orders
-        </button>
+        </NavLink>
 
-        <button
-          onClick={() => setActiveTab('customers')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
-            activeTab === 'customers'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-          }`}
+        <NavLink
+          to="/customers"
+          className={({ isActive }) =>
+            `w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+              isActive
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+            }`
+          }
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           Customers
-        </button>
+        </NavLink>
       </nav>
 
       {/* Database Connection Status Footer */}
