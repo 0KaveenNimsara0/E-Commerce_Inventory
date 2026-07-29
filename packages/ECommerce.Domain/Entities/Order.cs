@@ -91,6 +91,15 @@ public class Order : BaseEntity
         MarkUpdated();
     }
 
+    public void MarkDelivered()
+    {
+        if (Status != OrderStatus.Shipped)
+            throw new InvalidOrderOperationException($"Cannot transition order from {Status} to Delivered.");
+
+        Status = OrderStatus.Delivered;
+        MarkUpdated();
+    }
+
     public void Cancel()
     {
         if (Status == OrderStatus.Delivered || Status == OrderStatus.Shipped)
