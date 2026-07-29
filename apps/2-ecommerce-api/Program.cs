@@ -1,7 +1,6 @@
+using ECommerce.Api.Endpoints;
 using ECommerce.Application;
 using ECommerce.Application.Common.Interfaces;
-using ECommerce.Application.DTOs;
-using ECommerce.Application.Services;
 using ECommerce.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -126,65 +125,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
-// --- API ENDPOINTS USING APPLICATION LAYER SERVICES ---
-
-// Products Endpoints
-app.MapGet("/api/inventory", async (IProductService productService) =>
-{
-    var products = await productService.GetAllProductsAsync();
-    return Results.Ok(products);
-});
-
-app.MapPost("/api/inventory", async (CreateProductDto dto, IProductService productService) =>
-{
-    var product = await productService.CreateProductAsync(dto);
-    return Results.Created($"/api/inventory/{product.Id}", product);
-});
-
-app.MapPut("/api/inventory/{id:guid}", async (Guid id, UpdateProductDto dto, IProductService productService) =>
-{
-    var product = await productService.UpdateProductAsync(id, dto);
-    return product != null ? Results.Ok(product) : Results.NotFound(new { message = $"Product with ID {id} not found." });
-});
-
-app.MapDelete("/api/inventory/{id:guid}", async (Guid id, IProductService productService) =>
-{
-    var deleted = await productService.DeleteProductAsync(id);
-    return deleted ? Results.NoContent() : Results.NotFound(new { message = $"Product with ID {id} not found." });
-});
-
-// Customers Endpoints
-app.MapGet("/api/customers", async (ICustomerService customerService) =>
-{
-    var customers = await customerService.GetAllCustomersAsync();
-    return Results.Ok(customers);
-});
-
-app.MapPost("/api/customers", async (CreateCustomerDto dto, ICustomerService customerService) =>
-{
-    var customer = await customerService.CreateCustomerAsync(dto);
-    return Results.Created($"/api/customers/{customer.Id}", customer);
-});
-
-app.MapPut("/api/customers/{id:guid}", async (Guid id, UpdateCustomerDto dto, ICustomerService customerService) =>
-{
-    var customer = await customerService.UpdateCustomerAsync(id, dto);
-    return customer != null ? Results.Ok(customer) : Results.NotFound(new { message = $"Customer with ID {id} not found." });
-});
-
-// Orders Endpoints
-app.MapGet("/api/orders", async (IOrderService orderService) =>
-{
-    var orders = await orderService.GetAllOrdersAsync();
-    return Results.Ok(orders);
-});
-
-// System Stats Endpoint
-app.MapGet("/api/stats", async (IStatsService statsService) =>
-{
-    var stats = await statsService.GetSystemStatsAsync();
-    return Results.Ok(stats);
-});
+// --- Map API Endpoints ---
+app.MapProductEndpoints();
+app.MapCustomerEndpoints();
+app.MapOrderEndpoints();
+app.MapStatsEndpoints();
 
 // Config Check Endpoint
 app.MapGet("/config-check", (IConfiguration config) =>
@@ -200,3 +145,4 @@ app.MapGet("/config-check", (IConfiguration config) =>
 });
 
 app.Run();
+
