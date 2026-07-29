@@ -25,7 +25,10 @@ public class StatsService : IStatsService
         var pendingOrders = await _db.Orders.CountAsync(o => o.Status == OrderStatus.Pending, cancellationToken);
         var totalCustomers = await _db.Customers.CountAsync(cancellationToken);
 
-        var orders = await _db.Orders.Include(o => o.Items).ToListAsync(cancellationToken);
+        var orders = await _db.Orders
+            .Where(o => o.Status != OrderStatus.Cancelled)
+            .Include(o => o.Items)
+            .ToListAsync(cancellationToken);
         var totalRevenue = orders.Sum(o => o.TotalAmount.Amount);
 
         return new SystemStatsDto(
